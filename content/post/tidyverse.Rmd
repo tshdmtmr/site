@@ -1,0 +1,519 @@
+---
+title: "My Tidyverse"
+author: "tshdmtmr"
+date: '2022/02/19'
+categories: ["R"]
+tags: ["R Markdown", "plot", "regression", 'tidyverse']
+---
+
+```{r, eval = F}
+# コメント化：コメントアウト：範囲; { } の中にコメント化したいコードを入れる
+ if(0) { }
+
+# 指数表示の回避
+options(scipen = 100)
+
+# オブジェクトの中身を調べる
+names()
+View()
+
+# 日付の修正
+lubridate::ymd(210504) # "2021-05-04"
+
+# 日付：シリアル値を日付型に変換
+## シリアル値をnumericにしてから変換
+mutate(着工 = as.Date(as.numeric(着工), origin = "1899-12-30")) 
+
+# 推計結果をtibble に変換；date.frame を噛ませる
+# 行名称を列名称として保存
+  class1_cat12$CoefTable %>%
+    as.data.frame() %>%
+    rownames_to_column(.data, var = "rowname")%>%
+    tibble()
+
+# tibble 全行表示
+df %>% print(n = Inf )
+
+# tibble_全列表示；全変数表示；折り返し
+df %>% print(width = Inf)
+
+# 関数：パッケージの競合；衝突；conflict
+library(conflicted)
+
+# 半角→全角_全角→半角_変換；stringi::
+mutate_all(~ stri_trans_nfkc(.))
+
+# 和暦西暦変換: zinpang
+mutate(hoge = map(.x = geho, ~ zipangu::convert_jyear(.)))
+
+# 分岐; パイプ; 第一引数の省略出来ない
+magrittr::%T>%{}
+      mutate(Sum = map_dbl(data, ~ sum(.$amount))) %T>% {
+        filter(., 目 == '一般管理費') %>%
+        select(., Sum) ->> Target
+      } %>%
+    slice(-1) %>%
+    mutate(Total = sum(Sum))
+
+# 正規表現
+# 数字の繰り返し
+'[:digit:]{7}'
+* '{n}' # 直前の項目をちょうど n 回繰り返す
+* '{n,}' # 直前の項目を n 回以上繰り返す
+
+# 列名称を取得
+colnames(.)
+
+# 列名称の一括置換
+rename_with(.,  ~ str_replace_all(., '\\...\\d', ''))
+
+# 1行目を列名に挿入；一行目；列名称
+df %>%
+  magrittr::set_colnames(.[1,])
+
+# 列名変更; 列名称
+df %>% purrr::set_names(c("foo", "bar", "baz"))
+foo bar baz
+  1   2   3
+
+# 列名変更；一括; 列名称
+rename_with(~ c("1" : "16"), starts_with(c("2020", "2021")))
+
+df %>% rename(延床面積 = 5)；列番号で指示できる！
+
+# 列名変更: selectを利用
+select(., "sepal_length" = Sepal.Length, "sepal_width" = Sepal.Width)
+
+# 列に値を挿入；代入：セル入力：オートフィル；データ；1文字；番地指定；行・列
+magrittr ::  inset(1, 2, value = 'hoge')
+
+# 空行を挿入
+df %>% bind_rows(tibble(更新年度_長寿命化 = seq(2021, 2049))) %>% 
+
+
+# リストからデータフレームへ；階層下げる；melt
+iris3 %>%
+  reshape2::melt() %>%
+  tibble::as_tibble()
+
+# 各要素へのアクセス；取得
+df %>% hoge[[1]]; 列名[[行番号]]
+
+# リストへのオブジェクトの追加
+最初に空のリストを作成し、これに要素を足して行く。
+x <- list()                # 空の（要素数ゼロの）リストを作る
+for (i in 1:4) {           # ４回の繰り返し
+    y <- rnorm(10)         # 10個の正規乱数が並んだベクトルを作る
+    x <- c(x,  list(y))    # 作成したベクトルを x の末尾に追加する
+}
+
+# 文字コード; 文字化け
+  read_csv("/Users/tm/Dropbox/_Study/Hoge/20200213155631.csv"
+, locale = locale(encoding = "CP932"))
+
+# グラフ; 文字化け
+  par(family = "HiraKakuProN-W3")
+
+# 頭ゼロ埋め；ゼロパディング
+str_pad(string, width, side = c("left", "right", "both"), pad = " ")
+文字列の幅を width に伸ばして side 側を pad で埋める。
+数字の左を0で埋めて長さを揃えるのにも使える:
+mutate(施設コード = str_pad(施設コード, side = "left", width = 3L, pad = "0"))
+
+# エンコーディングを確認する方法
+{readr}のguess_encoding()でエンコーディングを推測。
+guess_encoding('data/data_utf8.csv')
+
+# 入れ子構造：nest
+data.frameをネストして(入れ子にして)、list of data.frames のカラムを作る。
+iris %>% nest(NEW_COLUMN = -Species)
+
+# フォルダ内の深い階層にあるデータファイルを結合；map + map_dfr；map重ね技
+mutate(dir = map(value, ~ dir_ls(.))) %>%
+mutate(files = map(dir, ~ map_dfr(., ~ read_csv(., locale = locale(encoding = "CP932")))))
+
+#  map2；dataframeであるfilesに列(施設名称)を挿入
+mutate(files = map2(files, 施設名称,  ~ mutate(., 施設名称 = .y)))
+
+# データの要約：nest & map とセットで
+summarized <-
+  super_nested_FY %>%
+    mutate(summary = map(data, ~summary(.)))
+
+# map 出力をデータフレームで
+# 結果をdplyr::bind_rows()で【結合した】data.frameとして返す。
+files <– fs::dir_ls("path/to/data/", glob = "*.csv")
+combined_df <- map_dfr(files, read_csv)
+
+# NA；検索；条件；is.na
+mutate(facil = if_else(is.na(facil) , "未配賦", facil))
+
+# NAをゼロ置換：文字置換
+df %>% mutate_at(vars(hoge),  ~ replace_na(., 'unknown'))
+
+# 全ての列にNAがあるかどうかをチェック
+df %>% assertr::assert(not_na, everything())
+
+# 一つでもNAがある【行】を削除
+df %>% na.omit()
+
+# NA【列】を削除
+df %>% select_if(negate(anyNA)) 
+
+# 全ての行がNAの【列】を削除；NA列
+## 列のNAの数が行の数に等しい場合、完全にNA列となる
+## characterでもOK！
+select_if(~ sum(!is.na(.)) > 0)
+
+# 全部NAの行を削除
+  filter_all(any_vars(!is.na(.)))
+
+# NAを削除して左詰め : fill & unite が強力！！！
+df  %>% 
+    fill(1) %>% 
+    unite(z, c(2 : 57), sep = '_', na.rm = T)
+
+# NAを含む【列】を削除
+    select_if(~ !anyNA(.))
+    select_if(negate(anyNA))
+
+#一括置換
+mutate_all(~ str_replace_all(., pattern = " ", replacement = ""))
+
+#特定列だけ置換　列名に””が必要。要注意。
+mutate_at("列名", ~ str_replace_all(., pattern = " ", replacement = ""))
+
+mutate_at(c(-1, -7, -8), as.numeric)
+
+# 文字部分一致によるデータ上書き
+mutate(列名 = if_else(str_detect(列名, "検索文字"), "所管課", 列名))
+
+# 漢字、ひらがな、カタカナ
+'\\p{Hiragana} | \\p{Han} | \\p{Katakana}'
+
+# 同じ列を複数コピー;複製: expand; cross_join
+tibble(poo = c(1 : 5)) %>% 
+group_nest() %>% 
+expand(data, 1 : 10) %>% 
+pivot_wider(names_from = `1:10`, values_from = data) %>% 
+unnest()
+
+# 複数の列に同じ処理；across
+  diamonds %>%
+      group_by(color) %>%
+      summarise(across(depth : price, mean))
+
+# 順位を付ける順位；ランク
+x <- c(5, 1, 3, 2, 2, NA)
+row_number(x)
+min_rank(x)
+dense_rank(x)
+percent_rank(x)
+cume_dist(x)
+
+# 指定の場所に一列追加
+  add_row(分析分類 = "スポーツ・レクリエーション系", 施設名称 = "その他", .after = 20) ←場所指定は数値しかダメ！
+
+# 列を分離；整数を渡すと位置で切れる！sep = 1L
+separate(data, 列名, into = c("施設コード", "施設"), sep = “,”)
+
+# 列を結合・合体
+unite(roll_FY, c(r_FY_b1, FY))
+
+# 等差数列
+seq(51, 204, by = 3)
+
+# 数・数列・文字列を繰り返す；rep
+rep(c(1, 2, 4), c(5, 10, 5))
+rep(c('Dog', 'Cat', 'Mouse'), c(1, 2, 3))
+
+# 行合計；行集計；横計
+rowwise() %>%
+mutate(mean = sum(c_across(x:z)))
+  または、
+nest(-c(FY : name)) %>% # 計算対象となる変数をネストしてから、mapで一気にsum
+mutate(all = map_dbl(data, ~ sum(.)))
+  または、
+mutate(total = select(., inf : gen) %>% rowSums())
+
+# 行のjoin。yと重複するxの行を除いた、残りのxの行が返る。
+setdiff (x, y, …)
+
+# NAが含まれる全ての変数を調べる
+df %>% 
+filter_all(any_vars(is.na(.)))
+
+#  条件に該当する行【以外】の行だけ残す；条件に該当しない行だけ残す
+filter(df, ! (facil == "0091" & value == "9187416"))
+
+# 重複行の抽出；チェック
+ group_by(gender, bloodtype, age) %>%  filter(n( ) > 1)
+
+# 重複【していない】行の抽出
+ group_by(gender, bloodtype, age) %>%  filter(n( ) == 1)
+
+# 先頭に"k"を含む文字列で抽出(正規表現によるパターン記述)
+filter(df, str_detect(列名, "^k"))  
+
+# 複数の文字列を指定して抽出; スペースを入れるとエラー
+filter(., str_detect(列名, '投資的|収入'))
+
+# 全体検索; 文字列
+filter_all(., any_vars(. == "市 町 村 類 型"))
+
+# 特定の文字列を含むかどうかで抽出
+filter(df, str_detect(列名, '文字'))
+
+# 特定の文字列を【含まない】行を抽出
+filter(df, str_detect(列名, “文字”, negate = T))
+
+# 検索；部分一致；抽出用の辞書；リストの作成；%in%; Python; 辞書
+#指定したい値をオブジェクトに代入
+choice <- c('setosa', 'versicolor')
+df %>% filter(Species %in% choice)
+df %>% filter(!(s %in% choice))
+# Sample_1
+Users <- c('芽室町', '黒石市', '会津若松市')
+mutate(., Users = if_else(団体名 %in% Users, '1', '0'))
+# Sample_2
+shisetsu <- "与那原中学校|与那原小学校|与那原幼稚園|与那原東小学校|与那原東幼稚園|給食センター"
+mutate(., 施設名称候補 = str_extract(摘要, shisetsu))
+
+# filter 文字列；複数条件；含む; str_detect；または
+filter(str_detect(節細節, '(11|13|15)'))
+filter(., 列名 %in% c("工事請負費", "委託料", "需要費"))
+filter(., Species == 'versicolor' | Species == 'setosa')
+
+# s2にNAが含まれていないレコードを抽出
+df %>% filter(!is.na(s2))
+
+# 列指定を文字列ではなく列番号で指定する
+df %>% filter(.[[1]] == 1)
+
+
+# 列名を前方一致で
+select(iris, starts_with('petal'))
+
+# 列名の通し番号で並び替え；x1, x2, …, xn
+select(df,  num_range(prefix = 'x', range = 1 : 3, width = 1))
+
+# 列数・行数をカウント
+tally()
+nrow(df)  ncol(df)
+
+# 列の数値合計；列合計；列集計；縦計；縦方向の合計; 合計行
+bind_rows(summarize(., across(where(is.numeric), ~ sum(.))))
+
+    または、
+
+tally(列名)
+summarize(施設合計 = sum(支出額))
+summarize_all(mean)
+
+# 連番：NAを、その列の直前の、 NAでない値で埋める。Excelのfill
+fill()
+
+# 連番挿入；{1, 2, 3} * 300回 = 900行；キチンと行数が合っていないとerrorになる；group_byが使えない場合
+df %>%  mutate(num = rep(1 : 3, 300))
+
+# グループ内で連番
+group_by(Species) %>%
+mutate(num = row_number())
+
+# グループ内順位をつける；番号挿入
+dplyr::row_number
+data %>%
+  group_by(分析分類, 施設名称) %>%
+  summarize(面積 = sum(延床面積)) %>%
+  mutate(num = row_number(desc(面積)))
+
+# グループ内でカウント
+  vars %>%
+    group_by(today_name) %>%
+    summarize(count = n())
+
+# グループ内で小さい順に並べる；順位
+group_by(., var) %>%
+mutate(., num = min_rank(x))
+
+# 指定したカラムだけ合計：複数列：合計
+summarize(across(where(is.numeric), mean, na.rm = T))
+summarise_at(.data, .cols, .funs, ...)
+summarize_at(vars(維持補修費 : 職員給), funs(sum))
+
+
+# 転置; 結局、longer と widerを組み合わせるのが早い; t(), tranpose()は使えない
+    pivot_longer(-項目, names_to = '年度', values_to = 'atai') %>% 
+    pivot_wider(names_from = 項目, values_from = atai)
+
+# 縦長にする；pivot_longer
+  rowid_to_column("id") %>%
+  pivot_longer(c(-id, -Species), names_to = "namae", values_to = "atai")
+       cols = 動かしたくない値が含まれている列。
+       names_to = 元々列名だったものを入れる列の名前
+       values_to = 値の移動先の列名
+
+# names_to に ".value" という特殊な値を渡すことで、 旧列名から新しい列名が作られ、複数列への縦長変形を同時にできる。
+  anscombe %>%
+    pivot_longer(                                         # 縦長に変形したい
+    everything(),                                         # すべての列について
+      names_to = c(".value", "group"),                    # x, yを列名に、1, 2, 3をgroup列に
+      names_sep = -1L)                                     # 切る位置(後ろから)
+
+
+# 横長にする
+pivot_wider(names_from = X2, values_from = value)
+    names_from = 新しく列名になる列
+    values_from = 動かしたい値が入っている列
+
+# 列分割：位置で切る：文字数で切る
+separate(., col = class, into = c("lbound", "ubound"), sep = "-")
+separate(., 管内, c('区分', '管内'), sep = 2L) # 文字二つ分の位置で切る
+
+# 列結合
+unite(data, col, ..., sep = "_", remove = TRUE)
+
+# ggplot2
+## 第2軸を作成 両軸
+second_rate = 0.5 # 主軸に対する第2軸の倍率
+scale_y_continuous(labels = comma, sec.axis = sec_axis(~ . / sec_rate, labels = comma, name = '人口(千人)')))
+## 日本語化
++ theme_gray (base_family = "HiraKakuPro-W3")
+
+#  Webスクレイピング 、ダウンロード
+## 施設カルテPDFをHPからダウンロード。施設マスタを作成するために。
+page <-
+  read_html("https://www.city.nikko.lg.jp/kanzai/shisetsu/karte.html")
+
+## テーブル情報を取得
+table <-
+  page %>%
+  html_nodes("table") %>%
+  html_table()
+
+## リンク情報を取得・リスト化
+pdf_url <-
+  page %>%
+  html_nodes("a") %>% ## find all links
+  html_attr("href") %>% ## pull out url
+  str_subset("\\.pdf") %>% ## pull out zip links
+  enframe()
+
+## ダウンロード元ディレクトリを設定
+down_dir <- "https://www.city.nikko.lg.jp/"
+
+## 保存先ディレクトリを設定
+save_dir <- "/Users/tm/Dropbox/JS_Task/Nikko/data/"
+
+## 順番にダウンロード
+for (i in 1 : nrow(pdf_url)) {
+    down_url <-
+      str_c(down_dir, pdf_url[[2]][i])
+    tmp_name <-
+      pdf_url[[2]][i] %>%
+      str_sub(start = 28, end = -1)
+    save_name <-
+      str_c(save_dir, tmp_name)egg
+    download.file(down_url, destfile = save_name)
+    Sys.sleep(1)
+}
+
+# パイプの分岐
+ 永続代入を使う。
+第一引数を忘れないこと。
+  super_area %>% {
+    filter(., FY == 2018) ->> FY2018
+    filter(., FY == 2017) ->> FY2017
+    filter(., FY == 2016) ->> FY2016
+}
+
+# 一期ずらす；purrr::lag
+x-1 <- lag(x)
+
+# DT::datable
+## 標準
+    datatable(caption = "AIC_BIC", rownames = F,
+              options = list(
+                pageLength = 10,
+                dom = 't',
+                scrollX = F,
+                scrollCollapse = F)) %>%
+      formatCurrency(columns = c(2 : 11), currency = "", mark = ",", digits = 0)
+
+
+# flextable; テーブル；表
+    flextable()%>%
+        # 表示桁数
+        colformat_double(digits = 2) %>%
+        # theme
+        theme_vanilla() %>%
+        # 強調; i = row; j = column
+        bg(i = c(1, 4, 20, 21, 25), j = 1 : 4, bg = "grey")
+
+# DT；datatable
+df  %>%
+    datatable(
+        caption = "事業別歳出額",
+        rownames = F) %>% 
+        formatCurrency(columns = c('決算額'),  currency = "",  mark = "",  digits = 0)
+
+# DT::datatable；表；テーブル
+  df %>%
+    datatable(caption = "今日の例文",
+   option           style = 'bootstrap4',
+              class = "stripe",
+              rownames = F, # 行名称の非表示
+              # width = 1000,
+              options = list(
+                              pageLength = 10, # 初期表示の行数
+                              # autoWidth = F,
+                              columnDefs = list(list(width = '40%', targets = list(2))), # 列幅調整
+                              # dom = 't',
+                              scrollY = T,
+                              scrollX = T,
+                              scrollCollapse = T))
+    formatCurrency(columns = c('所属金額'), currency = "", mark = ",", digits = 0) # カンマ区切り, 表示桁数
+
+# Excel出力；色々有るがこれで統一
+library(openxlsx)
+  df %>% write.xlsx(., "/Users/tm/Dropbox/Personal/hogehoge.xlsx")
+
+# NA について
+  データ型  データ型の確認関数 表記例 欠損値
+  実数  is.numeric  3、-1.5、 .1、1e+2、1.4e-2、Inf、-Inf、NaN NA_real_
+  文字列 is.character  'abc'、"森進一"、"髙田延彦\n星新一" NA_character_
+  整数  is.integer  1L （単に1だけだと実数型になる）  NA_integer_
+  複素数 is.complex  2+3i  NA_complex_
+  論理  is.logical  TRUE、FALSE、T、F  NA
+  NULL  is.null NULL  なし
+
+# ggplot
+# 作図
+  total %>%
+    filter(!is.na(支出額)) %>%  
+    group_nest(施設名称, 年度, 節) %>%
+    mutate(支出額 = map_dbl(data, ~ sum(.$支出額))) %>%
+    ggplot(aes(x = 施設名称, y = 支出額, fill = 節))+
+      geom_bar(stat = "identity", postion = "stack") +
+      # 日本語フォント表示
+      theme_gray(base_family = "HiraKakuPro-W3") +
+      # キャプション
+      labs(title = "年度別・施設別・節別積み上げグラフ") +
+      # Facet
+      facet_wrap(~ 年度) +
+      # 軸文字の角度を変える
+      theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+      # # 上限の設定
+      # scale_y_continuous(limits = c(0, NA)) +
+      # 軸タイトルを消す
+      # theme(axis.text.x = element_blank()) +
+      # 表示上限値を規定
+      coord_cartesian(ylim = c(0, 50000000)) +
+      # 縦軸を指数表示
+      scale_y_continuous(labels = scientific_notation) +
+      # 縦書き表示
+      ylab(tategaki("支出額")) +
+      theme(axis.title.y = element_text(angle = 0, vjust= 0.5)) 
+
+
+```
