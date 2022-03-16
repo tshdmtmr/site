@@ -1,0 +1,155 @@
+---
+title: 'TSHDMTMR'
+author: 'tshdmtmr'
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    code_folding: hide
+    self_contained: true
+    thumbnails: false
+    lightbox: false
+    md_extensions: -ascii_identifiers
+    css: custom.css
+header-includes:
+  - \usepackage{amsmath, amssymb}
+---
+
+
+```{r knitr_init, echo = F, results="asis", cache = F, message = F, warning = F}
+library(knitr)
+library(rmdformats)
+library(DT)
+library(ggplot2)
+library(tidyverse)
+library(formattable)
+
+
+# LaTexの数式：行列は余分な改行を入れるとエラーになる！！
+
+# ディレクトリの固定
+setwd("/Users/tm/Dropbox/JS_Task")
+
+## Global options
+options(max.print = "75")
+opts_chunk$set(echo = FALSE,
+	             cache = FALSE,
+               prompt = FALSE,
+               tidy = FALSE,
+               comment = NA,
+               message = FALSE,
+               warning = FALSE)
+opts_knit$set(width = 75)
+```
+
+# ゆるゆるコラム_201221
+## 前回まで
+\　地方公共団体が保有している「資本ストック」＝固定資産の簿価が、地域の地価を押し上げる効果が有るのかどうかを推計してみよう、というお話でした。幸いにもバランスシートから複数年にわたる簿価データを取得できるため、そのデータを使います。今回扱うデータは、個別自治体ごとに時系列にデータを持っているため、「パネルデータ」と呼ばれます。パネルデータの利点は色々有ると思いますが、例えば、北村(2005)[1]によれば、「パネルデータは膨大なクロスセクションデータを複数年にわたって結びつけたものであり、その情報量は極めて大きい。これによって、多重共線性の問題は解消され、推計上の自由度は増し、推計の不偏性は向上する。」ということだそうです。多重共線性とは、重回帰分析などを行う際に説明変数間に強い相関が有ると、パラメタの推計に偏りが出てしまうことです。  
+
+## パネルデータの種類  
+\　折角なので、ここでパネルデータの種類を整理しておきましょう。同じく北村(2005)を参考にします。  
+
+- プーリング・データ(Pooling)
+    - 時系列、クロスセクションのデータを全て合体して全ての変数が共通の母集団から発生していると考える。  
+    - 通常の最小二乗法と同じ結果になる。  
+- ビトウィーン・データ(Between)  
+    - 時系列方向に個別主体毎の平均を取り、それをクロスセクション・データとして分析する。  
+    - このデータでは時系列方向の変動ではなく、個別主体間の違いを見ることに主眼をおいたもの。  
+- ウィズイン・データ(Within)(固定効果モデル)  
+    - 個別主体毎の時系列方向のデータのみを扱うものである。  
+    - 個体ごとに個体内偏差（時点ごとの観察値から個体内平均を引き算した値）を求め，それらによって回帰分析をする。  
+  - 切片は個体(自治体)ごとに異なるが、パラメタは共通となる。  
+  - 導入し損なった変数(欠落変数バイアス)が時間とともに変化しないなら、切片の推定値が歪むだけでパラメタは正しく推定できる。  
+　これ以外の論点としては「変量効果モデル」が有ると思いますが、その辺の議論は当コラムの範囲を超えてしまいますので、ご関心の向きは専門書をご照覧下さい。  
+
+## データの中身
+　データの確認を致しますと、land = 住宅地の地価、inf = 生活インフラ・国土保全、edu = 教育、wel = 福祉、env = 環境衛生、ind = 産業振興、fir = 消防、gen = 総務　となります。会計は普通会計ベース。FYは会計年度を示しており、2010年度から2014年度まで。単位は千円です。  
+
+```{r, eval = T, echo = T, message = F}  
+    # データの読み込み
+library(psych)
+
+# データの読み込み
+# View(fs_data)
+fs_data <-    
+    read_csv("./data/200907_fs_data.csv") %>%
+    # 名称変更、正規化せず
+    rename(land = 4, inf = 5, edu = 6, wel = 7, env = 8, ind = 9, fir = 10 ,gen = 11) %>%
+    # ゼロデータを削除
+    filter(code != 13102) %>%
+    # 合計値を挿入
+    nest(inf : gen) %>%
+    mutate(total = map_dbl(data, ~ sum(.))) %>% unnest(data)
+
+# データ一覧    
+  fs_data %>%
+    datatable(
+    	caption = "データ一覧",
+    	rownames = F) %>%
+    formatCurrency(columns = c(4 : 12),  currency = "",  mark = ",",  digits = 0)
+```
+
+　データの基本的な統計量も合わせて示します。n = サンプルサイズ、mean = 平均、sd = 標準偏差、min = 最小値、max = 最大値　になります。なお、直感的に各説明変数間に相関が有りそうですが、ここでは無視して先に進んでしまいます。
+
+```{r, eval = T, echo = T}  
+library(corrr)
+
+# 基本統計量
+  fs_data %>%
+    describe() %>% slice(-1) %>% select(-c(1, 5, 6, 7, 10 : 13)) %>%
+    datatable(
+    	caption = "基本統計量") %>%
+    formatCurrency(columns = c(1 : 5),  currency = "",  mark = ",",  digits = 0)
+```
+
+## いよいよ推計
+　では、実際に推計してみましょう。どんな統計ソフトにでも、パネルデータを使ったパラメタ推計ができるパッケージがあると思います。Rの場合は、plmパッケージ内にあるplm() 関数を使うと便利です。書式は、通常Rで回帰分析を行う際に利用するlm()関数と基本的に同じですが、ただ、データのフォーマットをパネルデータ用に整形する必要があります。整形するツールはplmパッケージ内に同梱されていますので、作業上は悩むことは無いと思います。  
+　まずは、PooledOLSということで、時系列も自治体別の情報も持っているパネルデータではありますが、その辺の個別効果は無視して一気に回帰分析してしまおうというものです。OLS（Ordinary Least Squares regression）とは、最小二乗法のことです。それから、推計に際しては、被説明変数、説明変数ともに対数を取っております。  
+
+```{r, eval = T, echo = T}  
+library(plm)
+
+# plmで扱えるデータセットに変換
+fs_plm <-
+    pdata.frame(fs_data, index = c("code","FY"), drop.index = T)  
+# 分析を実行
+# pooledOLS  
+pooling <-
+    plm(log(land) ~ log(inf) + log(edu) + log(wel) + log(env) + log(ind) + log(fir) + log(gen), data = fs_plm, model = "pooling")
+    summary(pooling, robust = T)    
+```
+
+　Rから出力されたそのままをお示ししておりますので、見慣れない方にはかなり気持ち悪い感じになっているかと思います。  
+　Call: とある部分は、今回実行した推計式です。幾つか飛ばして、Coefficients： のところにある Estimate の列が係数の推定値です。(Intercept)とあるのは、切片です。その横にある Std.Errorというのは推定量の標準誤差。 t-valueとあるのはt値です。Pr(>|t|)は P値です。その横についている***という印は、その説明変数が有意であったかどうかを示すものです。    
+　R-Squared: とあるのは、決定係数。Adj. R-Squared: は自由度修正済み決定係数。F-statistic: とあるのはF値のことですが、ここでのF値は今回の推定結果、すなわち、係数の値が全て ゼロ であるという帰無仮説を検定するものであり、p-value はその P値になります。・・・と申し上げても何のことやら、という方もいらっしゃると思いますので、次回、少々用語の説明を説明をさせて頂きます。  
+[1]北村行伸『パネルデータ分析』岩波新書、2005年
+
+## ↑今回ここまで
+
+```{r, eval = F, echo = F}  
+# 固定効果
+within <-
+    plm(log(land) ~ log(inf) + log(edu) + log(wel) + log(env) + log(ind) + log(fir) + log(gen), data = fs_plm, model = "within")
+    # plm(log(land) ~ log(total), data = fs_plm, model = "within")
+    summary(within, robust = T)    
+# 個別効果の検定
+    pFtest(within, pooling)
+    pooltest(pooling, within)
+# 変量効果
+random <-
+    plm(log(land) ~ log(inf) + log(edu) + log(wel) + log(env) + log(ind) + log(fir) + log(gen), data = fs_plm, model = "random")
+    summary(random, robust = T)
+# ハウスマン検定
+    phtest(within, random)
+
+# Breusch-Pagan検定
+    plmtest(random, "individual", "bp")  
+
+# 時系列上の平均値
+between <-    
+    plm(land ~ inf + edu + wel + env + ind + fir + gen, data = fs_plm, model = "between", effect = "individual")
+    summary(between)
+
+```
+
+
+```
