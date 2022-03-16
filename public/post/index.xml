@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Posts on A Hugo website</title>
+    <link>/post/</link>
+    <description>Recent content in Posts on A Hugo website</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Wed, 16 Mar 2022 00:00:00 +0000</lastBuildDate><atom:link href="/post/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>TSHDMTMR</title>
+      <link>/2022/03/16/tshdmtmr/</link>
+      <pubDate>Wed, 16 Mar 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/2022/03/16/tshdmtmr/</guid>
+      <description>ゆるゆるコラム_201221 前回まで 　地方公共団体が保有している「資本ストック」＝固定資産の簿価が、地域の地価を押し上げる効果が有るのかどうかを推計してみよう、というお話でした。幸いにもバランスシートから複数年にわたる簿価データを取得できるため、そのデータを使います。今回扱うデータは、個別自治体ごとに時系列にデータを持っているため、「パネルデータ」と呼ばれます。パネルデータの利点は色々有ると思いますが、例えば、北村(2005)[1]によれば、「パネルデータは膨大なクロスセクションデータを複数年にわたって結びつけたものであり、その情報量は極めて大きい。これによって、多重共線性の問題は解消され、推計上の自由度は増し、推計の不偏性は向上する。」ということだそうです。多重共線性とは、重回帰分析などを行う際に説明変数間に強い相関が有ると、パラメタの推計に偏りが出てしまうことです。
+ パネルデータの種類 　折角なので、ここでパネルデータの種類を整理しておきましょう。同じく北村(2005)を参考にします。
+ プーリング・データ(Pooling)  時系列、クロスセクションのデータを全て合体して全ての変数が共通の母集団から発生していると考える。
+ 通常の最小二乗法と同じ結果になる。
+  ビトウィーン・データ(Between)  時系列方向に個別主体毎の平均を取り、それをクロスセクション・データとして分析する。
+ このデータでは時系列方向の変動ではなく、個別主体間の違いを見ることに主眼をおいたもの。
+  ウィズイン・データ(Within)(固定効果モデル)  個別主体毎の時系列方向のデータのみを扱うものである。
+ 個体ごとに個体内偏差（時点ごとの観察値から個体内平均を引き算した値）を求め，それらによって回帰分析をする。
+ 切片は個体(自治体)ごとに異なるが、パラメタは共通となる。
+ 導入し損なった変数(欠落変数バイアス)が時間とともに変化しないなら、切片の推定値が歪むだけでパラメタは正しく推定できる。
+これ以外の論点としては「変量効果モデル」が有ると思いますが、その辺の議論は当コラムの範囲を超えてしまいますので、ご関心の向きは専門書をご照覧下さい。    データの中身 　データの確認を致しますと、land = 住宅地の地価、inf = 生活インフラ・国土保全、edu = 教育、wel = 福祉、env = 環境衛生、ind = 産業振興、fir = 消防、gen = 総務　となります。会計は普通会計ベース。FYは会計年度を示しており、2010年度から2014年度まで。単位は千円です。
+ # データの読み込み library(psych) # データの読み込み # View(fs_data) fs_data &amp;lt;- read_csv(&amp;quot;.</description>
+    </item>
+    
+    <item>
+      <title>Hello R Markdown</title>
+      <link>/2020/12/01/hello-r-markdown/</link>
+      <pubDate>Tue, 01 Dec 2020 21:13:14 -0500</pubDate>
+      
+      <guid>/2020/12/01/hello-r-markdown/</guid>
+      <description>R Markdown This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see http://rmarkdown.rstudio.com.
+You can embed an R code chunk like this:
+summary(cars) ## speed dist ## Min. : 4.0 Min. : 2.00 ## 1st Qu.:12.0 1st Qu.: 26.00 ## Median :15.0 Median : 36.00 ## Mean :15.4 Mean : 42.</description>
+    </item>
+    
+    <item>
+      <title>A Plain Markdown Post</title>
+      <link>/2016/12/30/a-plain-markdown-post/</link>
+      <pubDate>Fri, 30 Dec 2016 21:49:57 -0700</pubDate>
+      
+      <guid>/2016/12/30/a-plain-markdown-post/</guid>
+      <description>This is a post written in plain Markdown (*.md) instead of R Markdown (*.Rmd). The major differences are:
+ You cannot run any R code in a plain Markdown document, whereas in an R Markdown document, you can embed R code chunks (```{r}); A plain Markdown post is rendered through Blackfriday, and an R Markdown document is compiled by rmarkdown and Pandoc.  There are many differences in syntax between Blackfriday&amp;rsquo;s Markdown and Pandoc&amp;rsquo;s Markdown.</description>
+    </item>
+    
+    <item>
+      <title>Lorem Ipsum</title>
+      <link>/2015/01/01/lorem-ipsum/</link>
+      <pubDate>Thu, 01 Jan 2015 13:09:13 -0600</pubDate>
+      
+      <guid>/2015/01/01/lorem-ipsum/</guid>
+      <description>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</description>
+    </item>
+    
+  </channel>
+</rss>
